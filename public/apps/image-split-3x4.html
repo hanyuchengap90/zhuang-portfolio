@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片四等分工具</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+        }
+        .upload-section {
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        input[type="file"] {
+            margin: 15px 0;
+            font-size: 14px;
+        }
+        #original-preview {
+            max-width: 260px;
+            max-height: 350px;
+            margin-top: 15px;
+            border-radius: 6px;
+            display: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .action-section {
+            margin: 20px 0;
+        }
+        .download-all-btn {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(46, 204, 113, 0.2);
+            transition: all 0.2s ease;
+        }
+        .download-all-btn:hover {
+            background-color: #27ae60;
+            box-shadow: 0 6px 12px rgba(46, 204, 113, 0.3);
+            transform: translateY(-1px);
+        }
+        .download-all-btn:active {
+            transform: translateY(1px);
+        }
+        .result-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 600px;
+            margin: 20px auto 0 auto;
+        }
+        .piece-wrapper {
+            background: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        canvas {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+        .download-btn {
+            margin-top: 12px;
+            padding: 6px 14px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+        .download-btn:hover {
+            background-color: #2980b9;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .tip {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 8px;
+        }
+    </style>
+<link rel="stylesheet" href="./app-theme.css?v=20260623">
+</head>
+<body>
+
+    <h1>图片四等分工具</h1>
+    
+    <div class="upload-section">
+        <p style="margin: 0; color: #7f8c8d;">工具会自动将其切分为四张图</p>
+        <input type="file" id="imageInput" accept="image/*">
+        <br>
+        <img id="original-preview" alt="原图预览">
+    </div>
+
+    <div id="actionArea" class="action-section hidden">
+        <button id="downloadAllBtn" class="download-all-btn">⚡ 一键下载全部 (4张)</button>
+        <p class="tip">提示：首次使用时，浏览器可能会询问“是否允许此网站下载多个文件”，请选择“允许”。</p>
+    </div>
+
+    <div id="results" class="result-container hidden"></div>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const originalPreview = document.getElementById('original-preview');
+        const actionArea = document.getElementById('actionArea');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        const resultsContainer = document.getElementById('results');
+
+        // 存储生成的下载链接，用于一键下载
+        let generatedLinks = [];
+
+        imageInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                originalPreview.src = e.target.result;
+                originalPreview.style.display = 'inline-block';
+                
+                const img = new Image();
+                img.onload = function() {
+                    splitImage(img);
+                }
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        });
+
+        function splitImage(img) {
+            // 重置状态
+            resultsContainer.innerHTML = '';
+            generatedLinks = [];
+            
+            resultsContainer.classList.remove('hidden');
+            actionArea.classList.remove('hidden');
+
+            const pieceWidth = Math.floor(img.width / 2);
+            const pieceHeight = Math.floor(img.height / 2);
+
+            const pieces = [
+                { x: 0, y: 0, name: '左上' },
+                { x: pieceWidth, y: 0, name: '右上' },
+                { x: 0, y: pieceHeight, name: '左下' },
+                { x: pieceWidth, y: pieceHeight, name: '右下' }
+            ];
+
+            pieces.forEach((piece, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'piece-wrapper';
+
+                const canvas = document.createElement('canvas');
+                canvas.width = pieceWidth;
+                canvas.height = pieceHeight;
+                const ctx = canvas.getContext('2d');
+
+                ctx.drawImage(
+                    img, 
+                    piece.x, piece.y, pieceWidth, pieceHeight, 
+                    0, 0, pieceWidth, pieceHeight
+                );
+
+                const dataURL = canvas.toDataURL('image/png');
+
+                const downloadLink = document.createElement('a');
+                downloadLink.href = dataURL;
+                // 命名格式：原图片名_位置.png，若无原名则用默认名
+                const originalName = imageInput.files[0].name.split('.')[0];
+                downloadLink.download = `${originalName}_${piece.name}.png`;
+                downloadLink.className = 'download-btn';
+                downloadLink.textContent = `下载 ${piece.name}`;
+
+                // 收集下载链接
+                generatedLinks.push(downloadLink);
+
+                wrapper.appendChild(canvas);
+                wrapper.appendChild(downloadLink);
+                resultsContainer.appendChild(wrapper);
+            });
+        }
+
+        // 一键下载按钮点击事件
+        downloadAllBtn.addEventListener('click', function() {
+            if (generatedLinks.length === 0) return;
+
+            // 循环触发每个链接的点击下载，并加入微小的延迟，防止浏览器因并发过高拦截下载
+            generatedLinks.forEach((link, index) => {
+                setTimeout(() => {
+                    link.click();
+                }, index * 250); // 每隔 250 毫秒触发一个下载
+            });
+        });
+    </script>
+<script src="./app-protect.js?v=20260623"></script>
+</body>
+</html>

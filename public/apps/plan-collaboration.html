@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>平面图协作工具</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f3ef; color: #2c2c2c; min-height: 100vh; }
+  header { padding: 18px 32px; background: #fff; border-bottom: 1px solid #e8e4dc; }
+  header h1 { font-size: 18px; font-weight: 600; }
+  .app { display: grid; grid-template-columns: 1fr 420px; gap: 16px; padding: 16px; max-width: 1700px; margin: 0 auto; }
+  .panel { background: #fff; border-radius: 8px; border: 1px solid #e8e4dc; padding: 14px; }
+  .toolbar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #f0ece4; }
+  .btn { padding: 7px 12px; border: 1px solid #d8d3c7; background: #fff; border-radius: 5px; cursor: pointer; font-size: 12px; color: #444; transition: all 0.15s; }
+  .btn:hover { background: #f5f3ef; border-color: #a8a193; }
+  .btn.active { background: #2c2c2c; color: #fff; border-color: #2c2c2c; }
+  .btn.primary { background: #c0392b; color: #fff; border-color: #c0392b; }
+  .btn.primary:hover { background: #a93226; }
+  .btn.upload { position: relative; overflow: hidden; }
+  .btn.upload input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .canvas-wrap { position: relative; background: #faf8f3; border: 1px dashed #d8d3c7; border-radius: 6px; height: calc(100vh - 220px); min-height: 480px; overflow: hidden; }
+  canvas { display: block; cursor: crosshair; }
+  .hint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 14px; pointer-events: none; }
+  .form-panel { overflow-y: auto; max-height: calc(100vh - 100px); }
+  .form-panel h2 { font-size: 13px; font-weight: 600; margin: 14px 0 10px; color: #555; display: flex; align-items: center; gap: 6px; }
+  .form-panel h2:first-child { margin-top: 0; }
+  .form-panel h2::before { content: ''; width: 3px; height: 13px; background: #c0392b; border-radius: 2px; }
+  .field { margin-bottom: 10px; }
+  .field label { display: block; font-size: 11px; color: #888; margin-bottom: 3px; }
+  .field input, .field select, .field textarea { width: 100%; padding: 7px 9px; border: 1px solid #e0dccf; border-radius: 4px; font-size: 12px; font-family: inherit; background: #fafaf7; color: #2c2c2c; }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: #888; background: #fff; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .field-row.two { grid-template-columns: 1fr 1fr; }
+  textarea { resize: vertical; min-height: 50px; }
+  .legend { font-size: 11px; color: #999; margin-top: 6px; line-height: 1.5; }
+  .output-box { width: 100%; min-height: 320px; padding: 10px; border: 1px solid #e0dccf; border-radius: 5px; font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 11px; line-height: 1.55; background: #faf8f3; color: #444; white-space: pre-wrap; margin-top: 10px; }
+  .actions { display: flex; gap: 6px; margin-top: 8px; }
+  .actions .btn { flex: 1; }
+  .badge { display: inline-block; padding: 1px 6px; background: #f0ece4; color: #888; font-size: 10px; border-radius: 3px; margin-left: 4px; }
+  .tip { background: #fff8e1; border: 1px solid #f0e0a0; border-radius: 5px; padding: 8px 10px; font-size: 11px; color: #7a6a20; line-height: 1.6; margin: 14px 0 6px; }
+
+  /* 风格参考图 */
+  .ref-section { background: #faf8f3; border: 1px solid #ede7d8; border-radius: 6px; padding: 10px; }
+  .ref-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; min-height: 90px; }
+  .ref-empty { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; color: #b8b29f; font-size: 11px; padding: 16px 0; }
+  .ref-item { position: relative; aspect-ratio: 1; background: #fff; border: 1px solid #e0dccf; border-radius: 4px; overflow: hidden; }
+  .ref-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ref-del { position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; background: rgba(192,57,43,0.92); color: #fff; border: 0; border-radius: 50%; cursor: pointer; font-size: 13px; line-height: 1; padding: 0; display: flex; align-items: center; justify-content: center; }
+  .ref-del:hover { background: rgba(169,50,38,1); }
+  .ref-num { position: absolute; top: 3px; left: 3px; background: rgba(0,0,0,0.65); color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 3px; }
+  .ref-desc { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: #fff; font-size: 10px; padding: 3px 5px; border: 0; outline: none; width: 100%; }
+  .ref-desc::placeholder { color: rgba(255,255,255,0.6); }
+  .ref-actions { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+  .ref-actions .btn.upload { font-size: 11px; padding: 5px 10px; }
+  .ref-count { font-size: 11px; color: #999; }
+</style>
+<link rel="stylesheet" href="./app-theme.css?v=20260623">
+</head>
+<body>
+<header>
+  <h1>平面图协作工具</h1>
+</header>
+
+<div class="app">
+  <section class="panel">
+    <div class="toolbar">
+      <label class="btn upload">📁 上传平面图<input type="file" accept="image/*" id="upload"></label>
+      <button class="btn active" data-tool="arrow">📍 镜头箭头</button>
+      <button class="btn" data-tool="label">🏷 家具标注</button>
+      <button class="btn" id="rotate-ccw">↺ 左转 90°</button>
+      <button class="btn" id="rotate-cw">↻ 右转 90°</button>
+      <button class="btn" id="undo">↶ 撤销</button>
+      <button class="btn" id="clear">🗑 清空</button>
+      <button class="btn" id="download">⬇ 下载标注图</button>
+    </div>
+    <div class="canvas-wrap">
+      <canvas id="canvas"></canvas>
+      <div class="hint" id="hint">先上传一张平面图开始</div>
+    </div>
+    <div class="legend">
+      镜头箭头：第一次点击设相机位（圆点），第二次点击设视线方向（箭头）。旋转时标注会跟随重映射。
+    </div>
+  </section>
+
+  <section class="panel form-panel">
+    <h2>空间信息</h2>
+
+    <div class="field">
+      <label>空间类型（可下拉选择，也可自由输入）</label>
+      <input type="text" id="space-type" list="space-type-list" placeholder="如：主卧 / 衣帽间 / 影音室...">
+      <datalist id="space-type-list">
+        <option value="主卧"></option><option value="次卧"></option>
+        <option value="客厅"></option><option value="书房"></option>
+        <option value="厨房"></option><option value="餐厅"></option>
+        <option value="卫生间"></option><option value="玄关"></option>
+        <option value="儿童房"></option><option value="客餐厅一体"></option>
+        <option value="阳台"></option><option value="衣帽间"></option>
+        <option value="影音室"></option><option value="健身房"></option>
+        <option value="茶室"></option><option value="工作室"></option>
+      </datalist>
+    </div>
+
+    <div class="field">
+      <label>房间尺寸（米，可留空让 AI 自行估算）</label>
+      <div class="field-row">
+        <input type="text" id="width" placeholder="开间">
+        <input type="text" id="depth" placeholder="进深">
+        <input type="text" id="height" placeholder="层高 2.7">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>风格倾向</label>
+      <select id="style">
+        <option value="">-- 选择 --</option>
+        <option>现代简约</option><option>奶油风</option><option>侘寂</option>
+        <option>法式</option><option>北欧</option><option>日式</option>
+        <option>中古</option><option>工业风</option><option>美式</option>
+      </select>
+    </div>
+
+    <div class="field-row two">
+      <div class="field">
+        <label>相机高度</label>
+        <select id="camera-height">
+          <option value="">--</option>
+          <option>站姿 1.5m</option><option>坐姿 1.1m</option>
+          <option>儿童视角 0.9m</option><option>俯视 2.0m+</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>光线时段</label>
+        <select id="time">
+          <option value="">--</option>
+          <option>晨光</option><option>正午</option><option>午后</option>
+          <option>黄昏</option><option>夜景</option><option>阴天柔光</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>输出比例</label>
+      <select id="aspect">
+        <option>3:2 横构图</option>
+        <option>16:9 宽幅</option>
+        <option>4:3 横构图</option>
+        <option>1:1 方图</option>
+        <option>3:4 竖构图（强纵深）</option>
+        <option>2:3 竖构图</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>其他备注（可选）</label>
+      <textarea id="notes" placeholder="特殊要求、需要避免的元素..."></textarea>
+    </div>
+
+    <h2>风格参考图（可选，最多 3 张）</h2>
+    <div class="ref-section">
+      <div class="ref-grid" id="ref-grid">
+        <div class="ref-empty" id="ref-empty">暂未添加参考图</div>
+      </div>
+      <div class="ref-actions">
+        <label class="btn upload">📷 添加参考图<input type="file" accept="image/*" id="ref-upload" multiple></label>
+        <span class="ref-count" id="ref-count">0 / 3</span>
+      </div>
+      <div class="legend" style="margin-top:6px;">
+        参考图用于定义整体视觉风格（色彩、材质、氛围）。可在每张图下方填写一句简短特点说明（选填）。
+      </div>
+    </div>
+
+    <button class="btn primary" id="generate" style="width:100%; margin-top: 14px;">⚡ 生成指令</button>
+
+    <textarea class="output-box" id="output-prompt" readonly placeholder="点击上方按钮生成..."></textarea>
+  </section>
+</div>
+
+<script>
+/* ============= 画布与状态 ============= */
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const hint = document.getElementById('hint');
+let img = null, imgScale = 1, imgOffset = { x: 0, y: 0 };
+const state = { arrows: [], labels: [], pending: null, tool: 'arrow', mouse: null };
+
+function fitCanvas() {
+  const wrap = canvas.parentElement;
+  const dpr = window.devicePixelRatio || 1;
+  const cw = wrap.clientWidth, ch = wrap.clientHeight;
+  canvas.width = cw * dpr;
+  canvas.height = ch * dpr;
+  canvas.style.width = cw + 'px';
+  canvas.style.height = ch + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  fitImage();
+  render();
+}
+function fitImage() {
+  if (!img) return;
+  const w = parseFloat(canvas.style.width) || canvas.clientWidth;
+  const h = parseFloat(canvas.style.height) || canvas.clientHeight;
+  imgScale = Math.min(w / img.width, h / img.height) * 0.95;
+  imgOffset = { x: (w - img.width * imgScale) / 2, y: (h - img.height * imgScale) / 2 };
+}
+const I2C = p => ({ x: p.x * imgScale + imgOffset.x, y: p.y * imgScale + imgOffset.y });
+const C2I = p => ({ x: (p.x - imgOffset.x) / imgScale, y: (p.y - imgOffset.y) / imgScale });
+
+function render() {
+  const w = parseFloat(canvas.style.width) || canvas.clientWidth;
+  const h = parseFloat(canvas.style.height) || canvas.clientHeight;
+  ctx.clearRect(0, 0, w, h);
+  if (!img) return;
+  ctx.drawImage(img, imgOffset.x, imgOffset.y, img.width * imgScale, img.height * imgScale);
+  state.arrows.forEach((a, i) => {
+    const p1 = I2C({ x: a.x1, y: a.y1 }), p2 = I2C({ x: a.x2, y: a.y2 });
+    drawArrow(ctx, p1.x, p1.y, p2.x, p2.y, 1, i + 1, 1);
+  });
+  if (state.pending && state.mouse) {
+    const p1 = I2C({ x: state.pending.x1, y: state.pending.y1 });
+    drawArrow(ctx, p1.x, p1.y, state.mouse.x, state.mouse.y, 0.5, null, 1);
+  }
+  state.labels.forEach(l => {
+    const p = I2C({ x: l.x, y: l.y });
+    drawLabel(ctx, p.x, p.y, l.text, 1);
+  });
+}
+function drawArrow(c, x1, y1, x2, y2, alpha, num, scale) {
+  c.save();
+  c.globalAlpha = alpha;
+  c.strokeStyle = '#c0392b'; c.fillStyle = '#c0392b';
+  c.lineWidth = 3 * scale; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
+  const angle = Math.atan2(y2 - y1, x2 - x1), head = 14 * scale;
+  c.beginPath();
+  c.moveTo(x2, y2);
+  c.lineTo(x2 - head * Math.cos(angle - Math.PI / 7), y2 - head * Math.sin(angle - Math.PI / 7));
+  c.lineTo(x2 - head * Math.cos(angle + Math.PI / 7), y2 - head * Math.sin(angle + Math.PI / 7));
+  c.closePath(); c.fill();
+  c.beginPath(); c.arc(x1, y1, 7 * scale, 0, Math.PI * 2); c.fill();
+  c.fillStyle = '#fff';
+  c.beginPath(); c.arc(x1, y1, 3 * scale, 0, Math.PI * 2); c.fill();
+  if (num != null) {
+    c.fillStyle = '#c0392b';
+    c.beginPath(); c.arc(x1 - 14 * scale, y1 - 14 * scale, 11 * scale, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#fff';
+    c.font = 'bold ' + (12 * scale) + 'px sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(num, x1 - 14 * scale, y1 - 14 * scale);
+  }
+  c.restore();
+}
+function drawLabel(c, x, y, text, scale) {
+  c.save();
+  c.font = (13 * scale) + 'px -apple-system, "PingFang SC", sans-serif';
+  const m = c.measureText(text);
+  const padX = 8 * scale, h = 22 * scale, w = m.width + padX * 2;
+  c.fillStyle = 'rgba(255, 235, 130, 0.95)';
+  c.strokeStyle = '#7a6a20'; c.lineWidth = scale;
+  c.beginPath();
+  if (c.roundRect) c.roundRect(x - w / 2, y - h / 2, w, h, 4 * scale);
+  else c.rect(x - w / 2, y - h / 2, w, h);
+  c.fill(); c.stroke();
+  c.fillStyle = '#3a3a2a';
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText(text, x, y);
+  c.restore();
+}
+
+/* ============= 鼠标交互 ============= */
+function getMouse(e) {
+  const r = canvas.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+canvas.addEventListener('mousemove', e => {
+  state.mouse = getMouse(e);
+  if (state.pending) render();
+});
+canvas.addEventListener('click', e => {
+  if (!img) return;
+  const ip = C2I(getMouse(e));
+  if (state.tool === 'arrow') {
+    if (!state.pending) state.pending = { x1: ip.x, y1: ip.y };
+    else {
+      state.arrows.push({ x1: state.pending.x1, y1: state.pending.y1, x2: ip.x, y2: ip.y });
+      state.pending = null; render();
+    }
+  } else if (state.tool === 'label') {
+    const text = prompt('输入标注内容（如：衣柜、床、飘窗、冰箱）');
+    if (text && text.trim()) { state.labels.push({ x: ip.x, y: ip.y, text: text.trim() }); render(); }
+  }
+});
+
+/* ============= 上传 / 工具切换 / 撤销 / 清空 ============= */
+document.getElementById('upload').addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const image = new Image();
+    image.onload = () => {
+      img = image;
+      hint.style.display = 'none';
+      state.arrows = []; state.labels = []; state.pending = null;
+      fitCanvas();
+    };
+    image.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+document.querySelectorAll('[data-tool]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active'); state.tool = btn.dataset.tool;
+    state.pending = null; render();
+  });
+});
+document.getElementById('undo').addEventListener('click', () => {
+  if (state.pending) { state.pending = null; render(); return; }
+  if (state.labels.length > state.arrows.length) state.labels.pop();
+  else if (state.arrows.length) state.arrows.pop();
+  else if (state.labels.length) state.labels.pop();
+  render();
+});
+document.getElementById('clear').addEventListener('click', () => {
+  if (!confirm('清空全部标注？')) return;
+  state.arrows = []; state.labels = []; state.pending = null; render();
+});
+
+/* ============= 旋转 ============= */
+function rotateImage(dir) {
+  if (!img) { alert('请先上传平面图'); return; }
+  const oldW = img.width, oldH = img.height;
+  const off = document.createElement('canvas');
+  off.width = oldH; off.height = oldW;
+  const octx = off.getContext('2d');
+  if (dir === 'cw') { octx.translate(oldH, 0); octx.rotate(Math.PI / 2); }
+  else { octx.translate(0, oldW); octx.rotate(-Math.PI / 2); }
+  octx.drawImage(img, 0, 0);
+  const tx = (x, y) => dir === 'cw' ? { x: oldH - y, y: x } : { x: y, y: oldW - x };
+  state.arrows = state.arrows.map(a => {
+    const p1 = tx(a.x1, a.y1), p2 = tx(a.x2, a.y2);
+    return { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y };
+  });
+  state.labels = state.labels.map(l => { const p = tx(l.x, l.y); return { x: p.x, y: p.y, text: l.text }; });
+  const newImg = new Image();
+  newImg.onload = () => { img = newImg; fitCanvas(); };
+  newImg.src = off.toDataURL();
+}
+document.getElementById('rotate-cw').addEventListener('click', () => rotateImage('cw'));
+document.getElementById('rotate-ccw').addEventListener('click', () => rotateImage('ccw'));
+
+/* ============= 下载标注图 ============= */
+function downloadImage() {
+  if (!img) { alert('请先上传平面图'); return; }
+  const off = document.createElement('canvas');
+  off.width = img.width; off.height = img.height;
+  const octx = off.getContext('2d');
+  octx.drawImage(img, 0, 0);
+  const s = Math.max(img.width, img.height) / 800;
+  state.arrows.forEach((a, i) => drawArrow(octx, a.x1, a.y1, a.x2, a.y2, 1, i + 1, s));
+  state.labels.forEach(l => drawLabel(octx, l.x, l.y, l.text, s));
+  off.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = '平面图标注_' + Date.now() + '.png';
+    a.click(); URL.revokeObjectURL(url);
+  });
+}
+document.getElementById('download').addEventListener('click', downloadImage);
+
+/* ============= 风格参考图 ============= */
+const MAX_REF = 3;
+let refImages = []; // [{ dataUrl, description }]
+
+function renderRefImages() {
+  const grid = document.getElementById('ref-grid');
+  const empty = document.getElementById('ref-empty');
+  const counter = document.getElementById('ref-count');
+  grid.innerHTML = '';
+  if (refImages.length === 0) {
+    grid.appendChild(empty);
+  } else {
+    refImages.forEach((r, i) => {
+      const div = document.createElement('div');
+      div.className = 'ref-item';
+      const im = document.createElement('img');
+      im.src = r.dataUrl;
+      const num = document.createElement('span');
+      num.className = 'ref-num';
+      num.textContent = '图' + (i + 2);
+      const del = document.createElement('button');
+      del.className = 'ref-del';
+      del.innerHTML = '×';
+      del.title = '删除';
+      del.onclick = () => { refImages.splice(i, 1); renderRefImages(); };
+      const desc = document.createElement('input');
+      desc.className = 'ref-desc';
+      desc.placeholder = '该图特点（选填）';
+      desc.value = r.description || '';
+      desc.oninput = () => { refImages[i].description = desc.value; };
+      div.appendChild(im);
+      div.appendChild(num);
+      div.appendChild(del);
+      div.appendChild(desc);
+      grid.appendChild(div);
+    });
+  }
+  counter.textContent = refImages.length + ' / ' + MAX_REF;
+}
+
+document.getElementById('ref-upload').addEventListener('change', e => {
+  const files = Array.from(e.target.files);
+  let pending = files.length;
+  files.forEach(file => {
+    if (refImages.length >= MAX_REF) { pending--; return; }
+    const reader = new FileReader();
+    reader.onload = ev => {
+      if (refImages.length < MAX_REF) {
+        refImages.push({ dataUrl: ev.target.result, description: '' });
+      }
+      pending--;
+      if (pending <= 0) renderRefImages();
+    };
+    reader.readAsDataURL(file);
+  });
+  e.target.value = '';
+  if (refImages.length >= MAX_REF) {
+    setTimeout(() => alert('最多上传 ' + MAX_REF + ' 张参考图'), 100);
+  }
+});
+
+renderRefImages();
+
+/* ============= 辅助：方向与位置描述 ============= */
+function describeArrowDir(a) {
+  const dx = a.x2 - a.x1, dy = a.y2 - a.y1;
+  const ang = Math.atan2(dy, dx) * 180 / Math.PI;
+  if (ang >= -22.5 && ang < 22.5) return '朝向画面右方（图纸右墙方向）';
+  if (ang >= 22.5 && ang < 67.5) return '朝向画面右下方';
+  if (ang >= 67.5 && ang < 112.5) return '朝向画面下方（图纸下墙方向）';
+  if (ang >= 112.5 && ang < 157.5) return '朝向画面左下方';
+  if (ang >= -67.5 && ang < -22.5) return '朝向画面右上方';
+  if (ang >= -112.5 && ang < -67.5) return '朝向画面上方（图纸上墙方向）';
+  if (ang >= -157.5 && ang < -112.5) return '朝向画面左上方';
+  return '朝向画面左方（图纸左墙方向）';
+}
+function describeCamPos(a, w, h) {
+  const xr = a.x1 / w, yr = a.y1 / h;
+  let v = yr < 0.33 ? '上部' : yr > 0.67 ? '下部' : '中部';
+  let p = xr < 0.33 ? '靠左' : xr > 0.67 ? '靠右' : '居中';
+  return '房间' + v + p;
+}
+
+/* ============= 表单读取 ============= */
+function getForm() {
+  const v = id => document.getElementById(id).value.trim();
+  return {
+    type: v('space-type'),
+    w: v('width'), d: v('depth'), h: v('height') || '2.7',
+    style: v('style'),
+    camH: v('camera-height'),
+    time: v('time'),
+    aspect: v('aspect'),
+    notes: v('notes')
+  };
+}
+
+/* ============= 生成指令 ============= */
+function buildPrompt(f) {
+  const refCount = refImages.length;
+  let p = '';
+
+  p += '# 角色\n';
+  p += '你是一名资深室内设计 AI 助理，精通图像识别、空间透视推理与文生图提示词工程。\n\n';
+
+  /* 任务（动态） */
+  p += '# 任务\n';
+  p += '我会同时提供以下素材：\n';
+  p += '- 图1：已标注的平面图（带红色镜头箭头 + 黄色家具标签）\n';
+  if (refCount === 1) {
+    p += '- 图2：风格参考图（用于定义本次出图的整体视觉语言）\n';
+  } else if (refCount > 1) {
+    p += '- 图2 ~ 图' + (refCount + 1) + '：共 ' + refCount + ' 张风格参考图（用于定义本次出图的整体视觉语言）\n';
+  }
+  p += '\n请你：\n';
+  p += '1. 用图像识别能力读懂图1平面图的空间结构（墙体、门窗、家具图例、房间形状）\n';
+  if (refCount > 0) {
+    p += '2. 仔细分析图2' + (refCount > 1 ? ' ~ 图' + (refCount + 1) : '') + '的视觉风格，提取其设计语言（色彩、材质、家具造型、装饰元素、光影氛围、空间气质等）\n';
+    p += '3. 结合标注（红色镜头箭头 + 黄色家具标签）、设计偏好与参考图风格，输出 JSON 提示词\n';
+    p += '4. 严格按照下方【输出模板】的字段结构组织内容\n\n';
+  } else {
+    p += '2. 结合标注（红色镜头箭头 + 黄色家具标签）和我的设计偏好，输出 JSON 提示词\n';
+    p += '3. 严格按照下方【输出模板】的字段结构组织内容\n\n';
+  }
+
+  p += '# 标注图说明\n';
+  p += '- 红色圆点：相机站位（圆点旁数字为镜头编号）\n';
+  p += '- 红色箭头：镜头视线方向（箭头末端为视觉焦点）\n';
+  p += '- 黄色标签：图上家具或区域的命名说明\n\n';
+
+  p += '# 设计意图信息\n';
+  p += '- 空间类型：' + (f.type || '（未指定，请你根据平面图判断）') + '\n';
+  if (f.w || f.d) p += '- 房间尺寸：' + (f.w || '?') + 'm 开间 × ' + (f.d || '?') + 'm 进深，层高 ' + f.h + 'm\n';
+  else p += '- 房间尺寸：未提供，请根据平面图比例估算，层高默认 ' + f.h + 'm\n';
+  p += '- 风格倾向：' + (f.style || '现代简约（默认）') + (refCount > 0 ? '（仅作参考，最终风格以参考图为准）' : '') + '\n';
+  p += '- 相机高度：' + (f.camH || '站姿 1.5m（默认）') + '\n';
+  p += '- 光线时段：' + (f.time || '午后（默认）') + '\n';
+  p += '- 输出画面比例：' + f.aspect + '\n';
+  if (f.notes) p += '- 其他备注：' + f.notes + '\n';
+  p += '\n';
+
+  /* 标注摘要 */
+  p += '# 标注摘要（机器可读，辅助你识图）\n';
+  if (state.arrows.length === 0) {
+    p += '⚠ 未提供镜头方向标注，请根据空间合理推荐一个最佳机位。\n\n';
+  } else {
+    p += '镜头总数：' + state.arrows.length + '\n';
+    state.arrows.forEach((a, i) => {
+      p += '\n镜头 ' + (i+1) + '：\n';
+      p += '  - 相机位（图纸坐标系）：' + describeCamPos(a, img ? img.width : 1000, img ? img.height : 1000) + '\n';
+      p += '  - 视线：' + describeArrowDir(a) + '\n';
+    });
+    p += '\n';
+  }
+  if (state.labels.length === 0) {
+    p += '黄色家具标签：无（请完全依赖图像识别推断家具）\n\n';
+  } else {
+    p += '黄色家具标签共 ' + state.labels.length + ' 个：\n';
+    state.labels.forEach(l => p += '  - ' + l.text + '\n');
+    p += '\n';
+  }
+
+  /* 风格参考图说明（仅当有参考图时） */
+  if (refCount > 0) {
+    p += '# 风格参考图说明（核心，请重点处理）\n';
+    p += '我提供的图2' + (refCount > 1 ? ' ~ 图' + (refCount + 1) : '') + '代表本次出图希望达到的目标视觉风格。请你按以下规则处理：\n\n';
+    p += '**1. 风格优先级**\n';
+    p += '   - 参考图的视觉语言是本次出图的**风格基准**，优先级高于表单"风格倾向"字段\n';
+    p += '   - 当二者冲突时，以参考图为准（表单字段仅作辅助理解）\n\n';
+    p += '**2. 提取维度**（请从参考图中识别并融入 JSON 输出的对应字段）\n';
+    p += '   - 色彩搭配：主色调、辅助色、点缀色的比例关系与冷暖倾向 → `color_scheme`\n';
+    p += '   - 材质质感：地面、墙面、家具、织物的材料语言 → `materials_palette`\n';
+    p += '   - 家具造型：线条曲直、体量感、繁简程度、设计语言（直线 / 弧形 / 复古 / 极简）→ `furniture[].detail`\n';
+    p += '   - 装饰风格：软装疏密、装饰元素类型（绿植 / 艺术品 / 织物层次）→ `furniture[].decor`\n';
+    p += '   - 光影氛围：光线方向、明暗对比、色温倾向 → `lighting`\n';
+    p += '   - 空间气质：克制 / 浓郁 / 柔软 / 硬朗 / 温润 / 冷峻 → `atmosphere`\n\n';
+    p += '**3. 边界约束**（极其重要）\n';
+    p += '   - **不要被参考图的空间布局影响**：本次出图的墙体走向、门窗位置、家具摆放必须严格遵循图1平面图\n';
+    p += '   - **不要照抄参考图的家具型号**：只学习其设计语言与气质，家具具体形态由图1平面图决定\n';
+    p += '   - **不要照抄参考图的镜头视角**：本次出图的视角由图1的红色箭头决定\n\n';
+    p += '**4. 融合表达**\n';
+    p += '   - 在 `scene` 字段中加入"风格继承自参考图"的暗示性描述\n';
+    p += '   - 在 JSON 顶部增加 `style_reference` 字段，用 1-2 句话凝练描述从参考图中提取的核心设计语言\n';
+
+    if (refImages.some(r => r.description && r.description.trim())) {
+      p += '\n**5. 用户对参考图的补充说明**\n';
+      refImages.forEach((r, i) => {
+        if (r.description && r.description.trim()) {
+          p += '   - 图' + (i + 2) + '：' + r.description.trim() + '\n';
+        }
+      });
+    }
+    if (refCount > 1) {
+      p += '\n**6. 多张参考图的处理**\n';
+      p += '   - 综合 ' + refCount + ' 张参考图的共同设计语言，提取最具代表性的视觉特征\n';
+      p += '   - 如果多张图风格存在差异，以共性为主，互补为辅，避免风格混乱\n';
+    }
+    p += '\n';
+  }
+
+  /* JSON 模板 */
+  const template = {
+    scene: '一句话场景描述（空间类型 + 风格 + 时段 + 氛围关键词' + (refCount > 0 ? '，并暗示"风格继承自参考图"' : '') + '）',
+    camera: {
+      shot_number: '镜头编号',
+      position: '相机在房间内的具体位置（用文字描述方位+距离）',
+      direction: '视线朝向（用墙体或主要家具作为参照物）',
+      visual_focus: '画面视觉焦点（具体的家具或墙面）',
+      height: '相机高度',
+      focal_length: '推荐焦距（<8㎡用18-20mm，<15㎡用20-24mm，<25㎡用24-35mm，>25㎡用35-50mm）',
+      composition: '构图类型（一点透视/两点透视/对称/L形等）+ 画面元素分布',
+      tilt: '相机俯仰，默认水平无畸变'
+    },
+    space: {
+      type: '空间类型',
+      dimensions: '房间尺寸文字描述',
+      visible_elements: ['画面中可见的主要墙面、门洞、窗户、空间连通关系（按从前景到远景顺序）']
+    },
+    furniture: [
+      {
+        item: '家具具体名称（如：L 型布艺沙发）',
+        position: '在画面中的位置（如：画面中部靠左，作为画面主体）',
+        detail: '材质、颜色、造型描述' + (refCount > 0 ? '（设计语言继承自参考图）' : ''),
+        decor: '家具上的陈列细节（抱枕、毛毯、装饰物等）'
+      }
+    ],
+    materials_palette: {
+      floor: '地面材质',
+      walls: '墙面材质',
+      ceiling: '吊顶处理',
+      wood_tone: '木色调',
+      textiles: '布艺类型',
+      metals: '五金颜色'
+    },
+    lighting: {
+      natural: '自然光来源、方向、强度、在画面上形成的光斑/投影',
+      artificial: '人工灯具开闭状态与种类',
+      color_temperature: '色温',
+      shadow_quality: '阴影特征',
+      mood: '光线营造的氛围'
+    },
+    style: '风格名称' + (refCount > 0 ? '（综合表单风格 + 参考图视觉语言）' : ''),
+    color_scheme: ['主色1', '主色2', '...'],
+    atmosphere: '整体氛围一句话总结',
+    details_for_realism: ['为提升真实感的具体细节描写（光斑位置、布艺褶皱、反光、生活痕迹等）'],
+    render_quality: {
+      engine: 'Corona / Octane 物理级渲染',
+      resolution: '8K 超高清',
+      depth_of_field: '景深处理',
+      aspect_ratio: f.aspect,
+      post_processing: '后期色调'
+    },
+    negative_prompt: '需要避免的元素（畸变、变形、塑料感等）'
+  };
+
+  if (refCount > 0) {
+    template.style_reference = '从参考图中提取的核心设计语言概括（1-2 句话，描述色彩气质 + 材质倾向 + 装饰风格的精髓）';
+  }
+
+  p += '# 输出模板（严格遵守此结构）\n';
+  p += '```json\n';
+  p += JSON.stringify(template, null, 2);
+  p += '\n```\n\n';
+
+  /* 处理规则 */
+  p += '# 处理规则（重要）\n';
+  p += '1. **以图像识别为主，标注为辅**：黄色标签告诉你"这个图例是什么"，但你必须自己识图来理解空间形状、墙体走向、门窗位置、家具相对关系\n';
+  p += '2. **图上有但未标注的元素也要纳入**：比如门洞、过道、电视墙、通往其他空间的连接关系\n';
+  p += '3. **镜头方向决定 visible_elements 顺序**：画面里能看到什么、看不到什么，必须根据红色箭头视线方向反推\n';
+  if (refCount > 0) {
+    p += '4. **风格、配色、材质优先以参考图为准**，光线时段必须严格遵循我的指定，不要自行替换\n';
+  } else {
+    p += '4. **风格、光线时段必须严格遵循我的指定**，不要自行替换\n';
+  }
+  p += '5. **家具描述要"可视化"**：避免"一些装饰品"这种模糊词，写成"陶土花瓶插一支尤加利干枝"这种具象描述\n';
+  p += '6. **多镜头时输出数组**：如果有多个镜头标注，输出一个 JSON 数组，每个元素对应一个镜头\n';
+  p += '7. **输出纯 JSON**：用 ```json 代码块包裹，不要在 JSON 外添加额外解释\n';
+  if (refCount > 0) {
+    p += '8. **空间结构 vs 视觉风格的边界**：空间结构（墙体、家具位置、镜头方向）100% 跟图1，视觉风格（颜色、材质、装饰、氛围）尽量贴合参考图\n';
+  }
+
+  return p;
+}
+
+document.getElementById('generate').addEventListener('click', () => {
+  const f = getForm();
+  document.getElementById('output-prompt').value = buildPrompt(f);
+});
+
+
+
+
+window.addEventListener('resize', fitCanvas);
+fitCanvas();
+</script>
+<script src="./app-protect.js?v=20260623"></script>
+</body>
+</html>

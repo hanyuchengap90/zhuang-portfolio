@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAD 平面图 AI 渲染生成器</title>
+    <style>
+        :root {
+            --primary: #4F46E5; 
+            --primary-hover: #4338CA;
+            --bg: #F8FAFC;
+            --card: #FFFFFF;
+            --text: #1E293B;
+            --border: #E2E8F0;
+            --code-bg: #0F172A;
+            --code-text: #38BDF8;
+            --accent: #F59E0B;
+            --success: #10B981;
+        }
+
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: var(--bg); color: var(--text); padding: 2rem; margin: 0; line-height: 1.6; }
+        .container { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: 480px 1fr; gap: 2rem; align-items: start; }
+        @media (max-width: 1024px) { .container { grid-template-columns: 1fr; } }
+
+        h1 { grid-column: 1 / -1; text-align: center; color: var(--text); font-size: 1.8rem; margin-bottom: 2rem; letter-spacing: 1px; }
+        h1 span { color: var(--primary); font-weight: 900; background: #E0E7FF; padding: 4px 12px; border-radius: 8px; font-size: 1.2rem; vertical-align: middle; }
+
+        .card { background: var(--card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 1.2rem; position: relative; }
+        .section-title { font-size: 1.05rem; font-weight: 700; border-bottom: 2px solid var(--bg); padding-bottom: 0.5rem; margin-top: 0; margin-bottom: 1rem; color: #334155; display: flex; justify-content: space-between; align-items: center;}
+        
+        .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+        .tab-btn { flex: 1; padding: 0.8rem; border: none; background: #E2E8F0; border-radius: 8px; cursor: pointer; font-weight: 600; color: #475569; transition: all 0.2s; }
+        .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
+
+        .form-group { margin-bottom: 1.2rem; }
+        label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: #475569; }
+        select, input[type="text"] { width: 100%; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; background-color: #F8FAFC; transition: all 0.2s; cursor: pointer; }
+        select:focus, input:focus { outline: none; border-color: var(--primary); background-color: #FFF; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+
+        .color-picker { display: flex; align-items: center; gap: 0.8rem; }
+        input[type="color"] { width: 36px; height: 36px; border: none; border-radius: 6px; cursor: pointer; padding: 0; background: none; }
+
+        .output-section { position: sticky; top: 2rem; display: flex; flex-direction: column; }
+        .output-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+        .output-header h2 { margin: 0; font-size: 1.2rem; color: var(--text); }
+#output { background: var(--code-bg); color: var(--code-text); padding: 1.5rem; border-radius: 12px; font-family: "JetBrains Mono", Consolas, monospace; font-size: 0.85rem; white-space: pre-wrap; height: calc(100vh - 180px); overflow-y: auto; border: 1px solid #1E293B; margin: 0; line-height: 1.5; }
+        
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+
+        /* 两列布局小工具 */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+        #toast { visibility: hidden; min-width: 250px; background-color: var(--success); color: #fff; text-align: center; border-radius: 8px; padding: 12px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 0.9rem; font-weight: 500; opacity: 0; transition: opacity 0.3s, bottom 0.3s; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+        #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+<link rel="stylesheet" href="./app-theme.css?v=20260623">
+</head>
+<body>
+
+<div class="container">
+    <h1>室内设计平面图 AI 提示词生成器</h1>
+
+    <div class="controls-section" id="form-container">
+
+        <div id="interior-tab" class="tab-content active">
+            <div class="card" style="border-left: 4px solid var(--accent);">
+                <div class="section-title">全局空间中枢 (Global Engine)</div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>整体软装风格 (智能联动材质)</label>
+                        <select id="int-style" onchange="applyStyleDefaults()">
+                            <option value="modern">现代极简 (Modern Minimalist)</option>
+                            <option value="wabi">侘寂微水泥 (Wabi-Sabi)</option>
+                            <option value="french">法式复古 (French Vintage)</option>
+                            <option value="chinese">现代新中式 (Modern Chinese)</option>
+                            <option value="industrial">工业包豪斯 (Industrial Bauhaus)</option>
+                            <option value="japandi">日式原木风 (Japandi)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="color: var(--primary);">空间视角 (Perspective) ✨</label>
+                        <select id="int-perspective">
+                            <option value="flat_2d">绝对扁平 2D (严禁透视)</option>
+                            <option value="slight_3d">微缩 2.5D / 3D 立体感</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group color-picker" style="margin-top: 0.5rem;">
+                    <label style="margin: 0;">硬装墙体色 (Walls):</label>
+                    <input type="color" id="int-wall-color" value="#E5E7EB">
+                    <span id="int-wall-hex" style="font-family: monospace; font-weight: bold; background: #F1F5F9; padding: 2px 6px; border-radius: 4px;">#E5E7EB</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="section-title">地面系统 (Flooring)</div>
+                <div class="grid-2">
+                    <div class="form-group"><label>客餐厅地面</label><select id="fl-living">
+                        <option value="wood_chevron">浅橡木色人字拼木地板</option>
+                        <option value="tile_warm">暖灰色哑光柔光大砖</option>
+                        <option value="microcement">浅灰微水泥无缝地面</option>
+                        <option value="marble_white">天然石纹白色大理石地面</option>
+                    </select></div>
+                    <div class="form-group"><label>卧室地面</label><select id="fl-bed">
+                        <option value="wood_normal">原木色常规拼接木地板</option>
+                        <option value="wood_dark">深胡桃木色复古木地板</option>
+                        <option value="carpet">浅灰色或米色舒适满铺地毯</option>
+                    </select></div>
+                    <div class="form-group"><label>厨房地面</label><select id="fl-kitchen">
+                        <option value="tile_dark">深灰色防滑地砖</option>
+                        <option value="tile_pattern">黑白相间的复古几何花砖</option>
+                        <option value="marble_high">高光大理石地砖</option>
+                    </select></div>
+                    <div class="form-group"><label>卫生间地面</label><select id="fl-bath">
+                        <option value="terrazzo_dark">深色高级颗粒感水磨石</option>
+                        <option value="tile_soft">浅米色柔光防滑砖</option>
+                        <option value="mosaic_vintage">深青色复古马赛克小花砖</option>
+                    </select></div>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;"><label>阳台地面</label><select id="fl-balcony">
+                    <option value="wood_outdoor">户外条形防腐木地板</option>
+                    <option value="tile_vintage">复古陶土仿古砖</option>
+                    <option value="stone_wash">浅灰色水洗石地面</option>
+                </select></div>
+            </div>
+
+            <div class="card">
+                <div class="section-title">家具材质 (Furniture)</div>
+                <div class="form-group"><label>沙发/休闲椅 (Sofa/Chairs)</label><select id="furn-sofa">
+                    <option value="fabric_light">米白/浅灰舒适布艺</option>
+                    <option value="leather_vintage">复古棕色/焦糖色皮质</option>
+                    <option value="velvet_dark">深灰色高级丝绒材质</option>
+                    <option value="rattan">藤编与原木结合材质</option>
+                    <option value="none">🚫 无此项 (跳过生成)</option>
+                </select></div>
+                <div class="form-group"><label>茶几/边几 (Coffee Tables)</label><select id="furn-table">
+                    <option value="glass_metal">长虹玻璃+黑色金属边框</option>
+                    <option value="wood_natural">自然边缘原木材质</option>
+                    <option value="stone">天然洞石/白底水磨石</option>
+                    <option value="acrylic">现代透明亚克力</option>
+                    <option value="none">🚫 无此项 (跳过生成)</option>
+                </select></div>
+                <div class="form-group"><label>餐桌椅组 (Dining)</label><select id="furn-dining">
+                    <option value="slate_leather">哑光白岩板桌面+皮椅</option>
+                    <option value="wood_solid">樱桃木/胡桃木全实木餐桌椅</option>
+                    <option value="glass_dark">黑色金属细腿+深色玻璃餐桌</option>
+                    <option value="none">🚫 无此项 (跳过生成)</option>
+                </select></div>
+                <div class="form-group"><label>床铺 (Beds)</label><select id="furn-bed">
+                    <option value="cotton_light">浅色系亲肤纯棉床品</option>
+                    <option value="silk_dark">深色系真丝/丝绒床品</option>
+                    <option value="linen_floral">清新棉麻/复古碎花床品</option>
+                    <option value="none">🚫 无此项 (跳过生成)</option>
+                </select></div>
+                <div class="form-group"><label>定制柜体 (Cabinets)</label><select id="furn-cabinet">
+                    <option value="matte_white">纯净无拉手哑光白饰面</option>
+                    <option value="wood_light">清新自然浅色原木/白橡木饰面 (新增)</option>
+                    <option value="wood_walnut">深色黑胡桃木纹理饰面</option>
+                    <option value="french_carved">带有法式线条雕花的白漆柜面</option>
+                    <option value="glass_led">茶色玻璃柜门+内部暖色灯带</option>
+                    <option value="none">🚫 无此项 (跳过生成)</option>
+                </select></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="output-section">
+        <div class="output-header">
+            <h2>强约束 JSON 提示词</h2>
+
+        </div>
+        <pre id="output"></pre>
+    </div>
+</div>
+
+<div id="toast">✅ 已自动为您匹配该风格的推荐材质配置！</div>
+
+<script>
+    // ================= 智能风格联动配置表 =================
+    const styleDefaults = {
+        "modern": { 
+            name: "现代极简 (Modern Minimalist)", wall: "#E5E7EB", 
+            flLiving: "tile_warm", flBed: "wood_normal", flKitchen: "tile_dark", flBath: "tile_soft", flBalcony: "tile_vintage",
+            furnSofa: "fabric_light", furnTable: "acrylic", furnDining: "slate_leather", furnBed: "cotton_light", furnCabinet: "matte_white"
+        },
+        "wabi": { 
+            name: "侘寂风/微水泥 (Wabi-Sabi)", wall: "#D6D3D1", 
+            flLiving: "microcement", flBed: "wood_normal", flKitchen: "tile_dark", flBath: "terrazzo_dark", flBalcony: "stone_wash",
+            furnSofa: "fabric_light", furnTable: "stone", furnDining: "wood_solid", furnBed: "cotton_light", furnCabinet: "wood_light"
+        },
+        "french": { 
+            name: "法式复古 (French Vintage)", wall: "#F3F4F6", 
+            flLiving: "wood_chevron", flBed: "wood_dark", flKitchen: "tile_pattern", flBath: "mosaic_vintage", flBalcony: "tile_vintage",
+            furnSofa: "velvet_dark", furnTable: "glass_metal", furnDining: "slate_leather", furnBed: "silk_dark", furnCabinet: "french_carved"
+        },
+        "chinese": { 
+            name: "现代新中式 (Modern Chinese)", wall: "#EAE6DF", 
+            flLiving: "marble_white", flBed: "wood_dark", flKitchen: "tile_dark", flBath: "tile_soft", flBalcony: "wood_outdoor",
+            furnSofa: "rattan", furnTable: "wood_natural", furnDining: "wood_solid", furnBed: "linen_floral", furnCabinet: "wood_walnut"
+        },
+        "industrial": { 
+            name: "工业包豪斯 (Industrial Bauhaus)", wall: "#9CA3AF", 
+            flLiving: "microcement", flBed: "wood_dark", flKitchen: "tile_dark", flBath: "terrazzo_dark", flBalcony: "stone_wash",
+            furnSofa: "leather_vintage", furnTable: "glass_metal", furnDining: "glass_dark", furnBed: "silk_dark", furnCabinet: "glass_led"
+        },
+        "japandi": { 
+            name: "日式原木风 (Japandi)", wall: "#F4F1EA", 
+            flLiving: "wood_normal", flBed: "wood_normal", flKitchen: "tile_soft", flBath: "tile_soft", flBalcony: "wood_outdoor",
+            furnSofa: "fabric_light", furnTable: "wood_natural", furnDining: "wood_solid", furnBed: "cotton_light", furnCabinet: "wood_light" // 联动了新增的浅木色
+        }
+    };
+
+    const textDict = {
+        "wood_chevron": "浅橡木色人字拼木地板", "tile_warm": "暖灰色哑光大砖", "microcement": "浅灰无缝微水泥", "marble_white": "带自然纹理白色大理石",
+        "wood_normal": "原木色常规拼接木地板", "wood_dark": "深胡桃木色复古地板", "carpet": "舒适的浅灰/米色满铺地毯",
+        "tile_dark": "深灰色防滑地砖，需透出网格线", "tile_pattern": "黑白复古几何花砖", "marble_high": "高光白色大理石砖",
+        "terrazzo_dark": "深色颗粒感高级水磨石", "tile_soft": "浅米色柔光防滑砖", "mosaic_vintage": "深青色马赛克小花砖",
+        "wood_outdoor": "户外条形防腐木地板", "tile_vintage": "复古陶土仿古砖", "stone_wash": "浅灰色水洗石材质",
+        "fabric_light": "米白/浅灰高级布艺", "leather_vintage": "复古焦糖色皮革", "velvet_dark": "深灰色/墨绿色丝绒", "rattan": "藤编与原木结合材质",
+        "glass_metal": "长虹玻璃与黑色金属框架", "wood_natural": "自然不规则边缘原木", "stone": "天然洞石/白底水磨石", "acrylic": "通透的现代亚克力",
+        "slate_leather": "哑光白岩板桌面配皮质餐椅", "wood_solid": "全实木(胡桃木/樱桃木)餐桌椅", "glass_dark": "深色玻璃桌面配细金属腿",
+        "cotton_light": "浅色系亲肤纯棉床品", "silk_dark": "深色高质感真丝/丝绒床品", "linen_floral": "清新棉麻/碎花床品",
+        "matte_white": "哑光纯白隐形无拉手饰面", "wood_light": "清新自然的浅色原木/白橡木纹理饰面", "wood_walnut": "深色黑胡桃木纹理饰面", "french_carved": "带法式线条雕花的白漆柜面", "glass_led": "茶色玻璃柜门带内置暖色发光灯带"
+    };
+
+    function applyStyleDefaults() {
+        const styleKey = document.getElementById('int-style').value;
+        const config = styleDefaults[styleKey];
+
+        document.getElementById('int-wall-color').value = config.wall;
+        document.getElementById('int-wall-hex').textContent = config.wall.toUpperCase();
+        
+        document.getElementById('fl-living').value = config.flLiving;
+        document.getElementById('fl-bed').value = config.flBed;
+        document.getElementById('fl-kitchen').value = config.flKitchen;
+        document.getElementById('fl-bath').value = config.flBath;
+        document.getElementById('fl-balcony').value = config.flBalcony;
+
+        document.getElementById('furn-sofa').value = config.furnSofa;
+        document.getElementById('furn-table').value = config.furnTable;
+        document.getElementById('furn-dining').value = config.furnDining;
+        document.getElementById('furn-bed').value = config.furnBed;
+        document.getElementById('furn-cabinet').value = config.furnCabinet;
+
+        showToast(`✅ 已切换至【${config.name}】并自动匹配底层材质！`);
+        generateJSON();
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    document.getElementById('int-wall-color').addEventListener('input', e => {
+        document.getElementById('int-wall-hex').textContent = e.target.value.toUpperCase();
+    });
+
+    // 核心 JSON 生成逻辑
+    function generateJSON() {
+        const styleKey = document.getElementById('int-style').value;
+        const styleName = styleDefaults[styleKey].name;
+        const perspective = document.getElementById('int-perspective').value;
+        const wallHex = document.getElementById('int-wall-color').value.toUpperCase();
+        
+        // 解析视角透视规则
+        let perspectiveRule = "";
+        let lightingRule = "";
+        
+        if (perspective === 'flat_2d') {
+             perspectiveRule = "Flat 2D Projection (绝对扁平): 保持绝对的垂直正交俯视图（Orthographic Top-Down View），严禁出现任何 3D 透视、立体拉伸或侧面视角畸变。";
+             lightingRule = "Flat Shading 无方向漫反射光。仅在墙体外侧及家具下方生成微弱的同向环境光遮蔽(AO)阴影，但绝不可模糊或覆盖 CAD 原有的黑色线框。";
+        } else {
+             perspectiveRule = "2.5D Diorama Effect (微缩立体感): 允许在完全保持平面图布局不变的前提下，对墙体和家具赋予轻微的 2.5D 轴侧立体感（体积拉伸），展现材质厚度，产生类似立体书或微缩模型的效果。";
+             lightingRule = "Directional Lighting (定向立体光): 采用清晰的定向顶侧光，为墙面和家具生成亮面、暗面和真实的物理投影，增强空间的纵深感与立体模型感。";
+        }
+
+        let furnitureMapping = {};
+        const furnitures = [
+            { id: 'furn-sofa', name: 'sofa_and_leisure_chairs' },
+            { id: 'furn-table', name: 'coffee_tables' },
+            { id: 'furn-dining', name: 'dining_table_sets' },
+            { id: 'furn-bed', name: 'beds_and_bedding' },
+            { id: 'furn-cabinet', name: 'custom_cabinets' }
+        ];
+
+        furnitures.forEach(item => {
+            const val = document.getElementById(item.id).value;
+            if (val !== 'none') {
+                furnitureMapping[item.name] = textDict[val];
+            }
+        });
+
+        furnitureMapping['plumbing_and_sanitary'] = "纯白高光陶瓷质感（保留所有 CAD 卫浴洁具符号）";
+        furnitureMapping['kitchen_appliances'] = "拉丝不锈钢或黑色金属面板（灶具、水槽等）";
+        furnitureMapping['plants_and_greenery'] = "翠绿色的室内盆栽植物（仅在图中有植物线稿时填充）";
+
+        const outputJSON = {
+            "system_role": "精通建筑与室内可视化的 AI 算法引擎",
+            "task_definition": "将二维 CAD 线框平面图进行高质量材质渲染",
+            "absolute_core_rules": [
+                "Strict Recognition (严格物体识别): 绝对禁止凭空脑补原图中不存在的结构或家具！必须遵守【识别到什么线框，才为其填充对应的材质】原则。",
+                "Zero Geometry Alteration (零结构篡改): 严禁移动、删除原图的承重墙、门窗符号、洁具位置以及原有的尺寸标注文字。",
+                perspectiveRule
+            ],
+            "rendering_parameters": {
+                "overall_style_consistency": `全图遵循【${styleName}】风格规范，保持材质调性高度统一。`,
+                "lighting_engine": lightingRule
+            },
+            "material_definitions": {
+                "structural_elements": { 
+                    "load_bearing_walls": `纯色均匀填充 (${wallHex})`, 
+                    "structural_pillars": "纯黑色实心填充 (#000000)" 
+                },
+                "floor_surfaces": {
+                    "living_and_dining_room": textDict[document.getElementById('fl-living').value],
+                    "bedrooms": textDict[document.getElementById('fl-bed').value],
+                    "kitchen": textDict[document.getElementById('fl-kitchen').value],
+                    "bathrooms": textDict[document.getElementById('fl-bath').value],
+                    "balcony": textDict[document.getElementById('fl-balcony').value]
+                },
+                "furnishings_and_objects": furnitureMapping
+            }
+        };
+
+        document.getElementById('output').textContent = JSON.stringify(outputJSON, null, 2);
+    }
+
+    document.getElementById('form-container').addEventListener('input', generateJSON);
+    document.getElementById('form-container').addEventListener('change', generateJSON);
+
+    window.onload = () => {
+        applyStyleDefaults();
+        generateJSON();
+    };
+</script>
+
+<script src="./app-protect.js?v=20260623"></script>
+</body>
+</html>

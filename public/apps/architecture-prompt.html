@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>建筑写实表现 - 提示词生成器</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --bg: #f4f6f8;
+            --border: #ced4da;
+            --radius: 6px;
+            --accent: #2e86de;
+            --success: #10ac84;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--primary);
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+            min-height: 100vh;
+        }
+        .form-section {
+            flex: 1.4;
+            background: #fff;
+            padding: 25px;
+            border-radius: var(--radius);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            min-height: calc(100vh - 40px);
+            overflow-y: visible;
+        }
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .card { 
+            background: #fff; 
+            padding: 20px; 
+            border-radius: var(--radius); 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+            display: flex;
+            flex-direction: column;
+            flex: 1; /* 让 JSON 预览卡片填满右侧高度 */
+        }
+        h2 { font-size: 1.3rem; margin-top: 0; padding-bottom: 12px; border-bottom: 2px solid var(--border); color: #34495e; }
+        h3 { font-size: 1rem; margin: 24px 0 12px 0; color: var(--accent); border-left: 4px solid var(--accent); padding-left: 10px; }
+        .row { display: flex; gap: 15px; margin-bottom: 12px; }
+        .row .form-group { flex: 1; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 0.85rem; margin-bottom: 6px; font-weight: 600; color: #555; }
+        select, input[type="text"] {
+            width: 100%; padding: 9px 12px; border: 1px solid var(--border);
+            border-radius: 4px; font-size: 0.9rem; box-sizing: border-box; background-color: #f8f9fa; transition: border 0.2s;
+        }
+        select:focus, input:focus { border-color: var(--accent); outline: none; background: #fff;}
+        .custom-input { margin-top: 8px; display: none; background-color: #fffde7 !important; border-color: #fdd835 !important; }
+        pre { 
+            background: #1e272e; color: #d2dae2; padding: 20px; border-radius: var(--radius); 
+            overflow-y: auto; font-size: 0.9rem; flex: 1; white-space: pre-wrap; margin-top: 0;
+            line-height: 1.5;
+        }
+        .btn { 
+            background: var(--accent); color: #fff; border: none; padding: 12px 15px; 
+            border-radius: 4px; cursor: pointer; font-size: 0.95rem; font-weight: bold; 
+            transition: opacity 0.2s; width: 100%; margin-top: 15px;
+        }
+        .btn:hover { opacity: 0.85; }
+        .btn.success { background: var(--success); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #b2bec3; border-radius: 3px; }
+    </style>
+<link rel="stylesheet" href="./app-theme.css?v=20260623">
+</head>
+<body>
+
+    <div class="form-section">
+        <h2>参数配置面板</h2>
+        
+        <h3>1. 基础项目信息</h3>
+        <div class="row">
+            <div class="form-group">
+                <label>输入源 (A项)</label>
+                <select id="projSource">
+                    <option value="SU建筑截图">SU建筑截图</option>
+                    <option value="建筑白模">建筑白模</option>
+                    <option value="场地航拍照片">场地航拍照片</option>
+                    <option value="建筑立面线稿">建筑立面线稿</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>建筑类型 (B项)</label>
+                <input type="text" id="projScene" value="文化艺术中心" placeholder="例如：商业综合体 / 独栋美术馆">
+            </div>
+        </div>
+        <div class="row">
+            <div class="form-group">
+                <label>建筑风格</label>
+                <select id="designStyle" onchange="toggleCustom('designStyle', 'designStyleCustom')">
+                    <option value="现代主义 (Modernist Architecture)">现代主义 (Modernist)</option>
+                    <option value="解构主义 (Deconstructivism)，充满张力的非线性体块">解构主义 (Deconstructivism)</option>
+                    <option value="粗野主义 (Brutalism)，强调结构与材料原色">粗野主义 (Brutalism)</option>
+                    <option value="参数化设计 (Parametric Design)，流线型表皮">参数化设计 (Parametric)</option>
+                    <option value="新中式建筑 (New Chinese Style)，坡屋顶与禅意表达">新中式建筑 (New Chinese)</option>
+                    <option value="custom">✍️ 自定义输入...</option>
+                </select>
+                <input type="text" id="designStyleCustom" class="custom-input" placeholder="请输入自定义风格...">
+            </div>
+            <div class="form-group">
+                <label>核心空间约束 (已锁定)</label>
+                <select id="coreConstraint" disabled style="background-color: #e9ecef; color: #495057;">
+                    <option value="exterior">建筑专属 (忠实还原体块、开窗与场地透视)</option>
+                </select>
+            </div>
+        </div>
+
+        <h3>2. 宏观环境与气象</h3>
+        <div class="row">
+            <div class="form-group">
+                <label>时间与天光</label>
+                <select id="envTime" onchange="toggleCustom('envTime', 'envTimeCustom')">
+                    <option value="清晨，晨雾弥漫，朝霞染红天际">清晨 (晨雾与朝霞)</option>
+                    <option value="午后，阳光强烈，产生清晰硬朗的建筑阴影">正午/午后 (强烈日照)</option>
+                    <option value="黄昏/魔术光 (Golden Hour)，低角度温暖阳光勾勒建筑轮廓">黄昏 (Golden Hour)</option>
+                    <option value="蓝调时刻 (Blue Hour)，深蓝天空与建筑暖光形成强烈冷暖对比">蓝调时刻 (夜景冷暖对比)</option>
+                    <option value="深夜，璀璨的城市夜景，星空背景">深夜 (璀璨夜景)</option>
+                    <option value="custom">✍️ 自定义输入...</option>
+                </select>
+                <input type="text" id="envTimeCustom" class="custom-input" placeholder="请输入自定义时间...">
+            </div>
+            <div class="form-group">
+                <label>气象状态</label>
+                <select id="envWeather">
+                    <option value="晴空万里，空气极度通透">晴朗通透</option>
+                    <option value="雨后初晴，地面有明显积水与建筑倒影">雨后 (水面反射)</option>
+                    <option value="阴天多云，柔和的漫反射光，无刺眼高光">阴天多云 (漫反射)</option>
+                    <option value="冬季暴风雪，建筑被白雪覆盖">暴风雪 (雪景)</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>场地周边上下文 (Context)</label>
+            <select id="envView" onchange="toggleCustom('envView', 'envViewCustom')">
+                <option value="繁华的城市CBD十字路口，高楼林立，车水马龙">城市CBD中心地带</option>
+                <option value="宁静的滨水河岸，开阔的水面与自然驳岸">滨水/海滨自然环境</option>
+                <option value="茂密的原始森林，建筑隐匿于参天大树之中">森林/山地隐匿环境</option>
+                <option value="开阔的城市广场，视线无遮挡">开阔的城市广场</option>
+                <option value="custom">✍️ 自定义输入...</option>
+            </select>
+            <input type="text" id="envViewCustom" class="custom-input" placeholder="请输入具体的周边环境...">
+        </div>
+
+        <h3>3. 建筑光效控制</h3>
+        <div class="row">
+            <div class="form-group">
+                <label>外部自然光</label>
+                <select id="lightExterior">
+                    <option value="阳光直射，建筑立面产生清晰的光影交界线，强化体块立体感">直射阳光 (强化体块立体感)</option>
+                    <option value="柔和的全局天光漫反射，凸显建筑表皮的细腻肌理">全局漫反射 (凸显表皮肌理)</option>
+                    <option value="强烈的逆光/剪影效果，仅勾勒建筑的天际线轮廓">逆光剪影 (突出轮廓)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>建筑照明 (人工光)</label>
+                <select id="lightBuilding">
+                    <option value="室内灯光全部开启，暖黄色光线透过大面积玻璃幕墙向外溢出，通透璀璨">玻璃幕墙透光 (内透通透)</option>
+                    <option value="立面泛光照明，地埋射灯洗亮建筑底部材质，强调建筑昭示性">立面洗墙灯/泛光照明</option>
+                    <option value="白天自然状态，无人工照明开启">无人工照明 (纯日景)</option>
+                </select>
+            </div>
+        </div>
+
+        <h3>4. 立面材质与场地</h3>
+        <div class="row">
+            <div class="form-group">
+                <label>主立面材质</label>
+                <select id="m_facadeMain" onchange="toggleCustom('m_facadeMain', 'm_facadeMainCustom')">
+                    <option value="高反射率的Low-E全隐框玻璃幕墙，映射出天空和周围建筑">全隐框玻璃幕墙 (映射环境)</option>
+                    <option value="保留真实模板拼缝与对拉螺栓孔的清水混凝土">清水混凝土</option>
+                    <option value="具有历史厚重感的红砖砌筑">复古红砖</option>
+                    <option value="暖色调天然干挂石材">干挂天然石材</option>
+                    <option value="极具现代感的银灰色阳极氧化铝板幕墙">阳极氧化铝板</option>
+                    <option value="custom">✍️ 自定义输入...</option>
+                </select>
+                <input type="text" id="m_facadeMainCustom" class="custom-input" placeholder="请输入主立面材质...">
+            </div>
+            <div class="form-group">
+                <label>次要材质/构件</label>
+                <select id="m_facadeSub" onchange="toggleCustom('m_facadeSub', 'm_facadeSubCustom')">
+                    <option value="纵向防腐木格栅遮阳百叶">木质遮阳格栅</option>
+                    <option value="深灰色氟碳漆钢结构框架">深灰色钢结构暴露</option>
+                    <option value="参数化渐变穿孔铝板">穿孔铝板</option>
+                    <option value="空">不需要(留空)</option>
+                    <option value="custom">✍️ 自定义输入...</option>
+                </select>
+                <input type="text" id="m_facadeSubCustom" class="custom-input" placeholder="请输入次要材质...">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>地面与场地铺装</label>
+            <select id="m_site" onchange="toggleCustom('m_site', 'm_siteCustom')">
+                <option value="带有清晰交通标线的黑色沥青市政道路">黑色沥青道路与标线</option>
+                <option value="大块面花岗岩广场硬质铺装">花岗岩广场铺装</option>
+                <option value="平静的无边际镜面水池，完美倒影建筑">镜面水池 (倒影建筑)</option>
+                <option value="修剪整齐的大面积景观草坪">景观草坪</option>
+                <option value="空">不需要(留空)</option>
+                <option value="custom">✍️ 自定义输入...</option>
+            </select>
+            <input type="text" id="m_siteCustom" class="custom-input" placeholder="请输入场地材质...">
+        </div>
+
+        <h3>5. 摄影参数配置 (焦段与视角)</h3>
+        <div class="row">
+            <div class="form-group">
+                <label>相机视角 (Camera)</label>
+                <select id="camAngle">
+                    <option value="人视底视角 (Worm's-eye view)，凸显建筑的高大雄伟与压迫感">人视底视角 (凸显雄伟)</option>
+                    <option value="正常人眼视高 (Eye-level)，平视，强调街道尺度与亲历感">平视街景视角 (真实亲历)</option>
+                    <option value="无人机航拍鸟瞰视角 (Aerial view)，展现完整的建筑屋顶第五立面与场地总图关系">鸟瞰航拍视角 (总图关系)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>专业镜头与焦段 (Lens)</label>
+                <select id="camModel">
+                    <option value="佳能 TS-E 17mm 移轴镜头，彻底修正建筑透视畸变，保证垂直线条绝对平行">17mm 移轴镜头 (专业建筑矫正，横平竖直)</option>
+                    <option value="24mm 超广角镜头，展现强烈的空间张力与建筑全貌">24mm 超广角 (凸显空间张力)</option>
+                    <option value="35mm 人文定焦镜头，视角自然，兼顾建筑主体与周边环境的叙事">35mm 人文视角 (建筑与环境叙事)</option>
+                    <option value="50mm 标准定焦镜头，消除透视形变，客观真实记录">50mm 标准镜头 (客观无畸变)</option>
+                    <option value="135mm 长焦镜头，压缩空间透视，拉近背景，强调建筑立面的局部纹理与序列感">135mm 长焦镜头 (压缩透视，强调局部纹理)</option>
+                    <option value="大疆 Mavic 3 Pro 航拍级哈苏镜头，画面锐利通透">航拍哈苏镜头 (无人机专用)</option>
+                </select>
+            </div>
+        </div>
+        
+        <h3>6. 画面生命力 (生动配景)</h3>
+        <div class="row">
+            <div class="form-group">
+                <label>生动配景 / 氛围感 (Entourage)</label>
+                <select id="camPeople">
+                    <option value="长曝光导致的车流红色尾迹光轨，以及行走的带动态模糊的行人，极具都市活力">车流光轨 + 动态模糊行人 (都市活力)</option>
+                    <option value="雨中撑伞匆匆走过的行人，路面积水反射出建筑的倒影与霓虹灯光">撑伞行人 + 水洼倒影 (雨天故事感)</option>
+                    <option value="骑行者与玩滑板的青年穿梭于广场，画面极具社区生活气息与年轻活力">骑行者与滑板青年 (社区活力)</option>
+                    <option value="建筑底层带有咖啡外摆区，坐着交谈的都市白领，具有浓厚的商业氛围">咖啡外摆 + 交谈白领 (商业氛围)</option>
+                    <option value="画面中有三两驻足观赏的行人作为建筑的比例尺，天空有飞鸟掠过">驻足行人作为比例尺 + 飞鸟</option>
+                    <option value="微风吹过，前景树叶产生轻微的动态模糊，远处的车辆若隐若现">前景树叶模糊摇曳 (自然呼吸感)</option>
+                    <option value="画面极其纯净，移除所有车辆、杂物与行人，仅保留纯粹的建筑结构与植物">纯净空景 (无车无人，极简纯粹)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>渲染精度</label>
+                <select id="renderQuality">
+                    <option value="超高分辨率 (8K) 建筑表现级，材质纹理极度清晰，逼真的光线追踪反射">8K 顶级建筑商业表现</option>
+                    <option value="建筑概念竞赛图纸风格，画面干净，色彩克制高级">概念竞赛图纸 (色彩克制)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="right-panel">
+        <div class="card">
+            <h2>JSON 提示词实时生成</h2>
+            <pre id="jsonOutput"></pre>
+        </div>
+    </div>
+
+    <script>
+        // 控制自定义输入框
+        function toggleCustom(selectId, inputId) {
+            const select = document.getElementById(selectId);
+            const input = document.getElementById(inputId);
+            input.style.display = select.value === 'custom' ? 'block' : 'none';
+            if (select.value === 'custom') input.focus();
+            generateJSON();
+        }
+
+        function getFinalValue(selectId, inputId) {
+            const select = document.getElementById(selectId);
+            return select.value === 'custom' ? document.getElementById(inputId).value : select.value;
+        }
+
+        // 核心 JSON 生成逻辑
+        function generateJSON() {
+            const projName = `${document.getElementById('projSource').value} - ${document.getElementById('projScene').value}`;
+            
+            // 建筑专属约束
+            const coreObj = {
+                "几何保真度": "忠实还原建筑体块关系、大面宽比例、开窗位置与立面进退关系。",
+                "场地完整性": "保持建筑与周边场地的原始高差及透视关系，不得随意增减主体构筑物。",
+                "转换逻辑": "将基础模型或底图转换为高精度、符合物理规律的真实建筑外立面材质 (PBR)。"
+            };
+
+            const data = {
+                "项目名称": projName,
+                "建筑风格": getFinalValue('designStyle', 'designStyleCustom'),
+                "核心约束": coreObj,
+                "宏观环境": { 
+                    "时间光效": getFinalValue('envTime', 'envTimeCustom'), 
+                    "气象状态": document.getElementById('envWeather').value,
+                    "场地周边": getFinalValue('envView', 'envViewCustom') 
+                },
+                "建筑光影": { 
+                    "外部自然光": document.getElementById('lightExterior').value, 
+                    "建筑人工光": document.getElementById('lightBuilding').value 
+                },
+                "摄影与后期": { 
+                    "相机视角": document.getElementById('camAngle').value,
+                    "专业镜头": document.getElementById('camModel').value, 
+                    "生动配景": document.getElementById('camPeople').value,
+                    "渲染精度": document.getElementById('renderQuality').value 
+                }
+            };
+
+            // 材质节点动态过滤
+            const materials = {};
+            const facadeMain = getFinalValue('m_facadeMain', 'm_facadeMainCustom');
+            const facadeSub = getFinalValue('m_facadeSub', 'm_facadeSubCustom');
+            const siteVal = getFinalValue('m_site', 'm_siteCustom');
+            
+            if (facadeMain && facadeMain !== '空') materials["主立面"] = facadeMain;
+            if (facadeSub && facadeSub !== '空') materials["次要构件"] = facadeSub;
+            if (siteVal && siteVal !== '空') materials["地面铺装"] = siteVal;
+
+            if (Object.keys(materials).length > 0) {
+                const newData = {};
+                for (let key in data) { 
+                    newData[key] = data[key]; 
+                    if (key === '建筑光影') newData["立面与场地材质"] = materials; 
+                }
+                document.getElementById('jsonOutput').textContent = JSON.stringify(newData, null, 2);
+                return JSON.stringify(newData, null, 2);
+            }
+
+            const jsonString = JSON.stringify(data, null, 2);
+            document.getElementById('jsonOutput').textContent = jsonString;
+            return jsonString;
+        }
+
+        // 监听所有输入框和下拉框，实现实时更新
+        document.querySelectorAll('input, select').forEach(element => {
+            element.addEventListener('input', generateJSON);
+            element.addEventListener('change', generateJSON);
+        });
+
+        // 初始化加载一次
+        generateJSON();
+    </script>
+<script src="./app-protect.js?v=20260623"></script>
+</body>
+</html>
