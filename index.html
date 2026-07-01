@@ -3,194 +3,169 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>庄志城 | 建筑 · 室内 · AI 设计应用</title>
+    <title>庄志城 -- 3D Space & AI Creator</title>
     <meta
       name="description"
-      content="庄志城个人网页，展示建筑设计、室内设计、AIGC 与设计类 AI 应用能力。"
+      content="庄志城个人网页，展示建筑设计、室内设计、AIGC 工作流与设计类 AI 应用。"
     />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='32' fill='%23161616'/%3E%3Ctext x='32' y='41' text-anchor='middle' font-size='28' font-family='Arial' font-weight='700' fill='white'%3EZ%3C/text%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="./styles.css?v=20260623-workgrid" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='32' fill='%230C0C0C'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-size='30' font-family='Arial' font-weight='800' fill='%23D7E2EA'%3EZ%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="./styles.css?v=20260701-publish" />
   </head>
   <body>
-    <header class="site-header">
-      <a class="brand" href="#top" aria-label="回到首页">
-        <span class="brand-mark">Z</span>
-        <span>庄志城</span>
-      </a>
-      <nav class="nav" aria-label="主导航">
-        <a href="#top">首页</a>
-        <a href="#work">作品</a>
-        <a href="#strengths">优势</a>
-        <a href="#ai-apps">AI</a>
-        <a href="#experience">经历</a>
-      </nav>
-    </header>
+    <main id="top" class="site-shell">
+      <section class="hero-section" aria-label="首页">
+        <header class="site-nav">
+          <a href="#services">Services<span>服务</span></a>
+          <a href="#projects">Projects<span>作品</span></a>
+          <a href="#contact">Contact<span>联系</span></a>
+        </header>
 
-    <main id="top">
-      <section class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow">Architectural Design / Interior Design / AI Workflow</p>
-          <h1><span>空间设计</span> × AI 工作流</h1>
-          <div class="hero-tags" aria-label="能力标签">
-            <span>Architecture</span>
-            <span>Interior</span>
-            <span>AIGC Workflow</span>
-          </div>
-          <div class="hero-actions">
-            <a class="button primary" href="#work">
-              <span>查看室内设计作品</span>
-              <span class="button-icon" aria-hidden="true">↗</span>
-            </a>
-            <a class="button" href="#ai-apps">
-              <span>查看AI应用作品</span>
-              <span class="button-icon" aria-hidden="true">→</span>
-            </a>
-          </div>
+        <div class="hero-heading-wrap reveal" data-reveal>
+          <h1 class="hero-heading">Hi, i'm AP</h1>
         </div>
-        <aside class="profile-panel" aria-label="个人概要">
-          <img src="./public/assets/resume/profile-avatar.png?v=20260623-clear" alt="庄志城头像" />
-          <div>
-            <h2>庄志城</h2>
-            <p>华南理工大学建筑学本科</p>
-            <p>现居深圳 / 建筑 & 室内 & AI</p>
-          </div>
-          <p class="profile-summary">
-            13 年建筑与室内设计经验。把空间方案、视觉表达、项目交付和 AI 工具，
-            组合成可复用的设计生产系统。
+
+        <div class="hero-bottom">
+          <p class="hero-intro reveal" data-reveal>
+            a space designer driven by architecture,<br />
+            interiors and ai production systems
+            <span>建筑 / 室内 / AI 生产系统设计师</span>
           </p>
-        </aside>
+          <a class="contact-button reveal" href="#contact" data-reveal>Contact Me</a>
+        </div>
       </section>
 
-      <section id="strengths" class="section">
-        <div class="section-heading">
-          <p class="eyebrow">Core Strengths</p>
-          <h2>核心优势</h2>
-        </div>
-        <div class="strength-grid">
-          <article>
+      <section class="marquee-section" aria-label="作品滚动预览">
+        <div class="marquee-row" data-direction="right"></div>
+        <div class="marquee-row" data-direction="left"></div>
+      </section>
+
+      <section id="services" class="services-section">
+        <h2 class="section-title reveal" data-reveal>Services</h2>
+        <div class="service-list">
+          <article class="service-item reveal" data-reveal>
             <span>01</span>
-            <h3>行业 + AI 视角</h3>
-            <p><strong>建筑与室内专业经验</strong>结合 <strong>AI 领域知识</strong>，能识别垂直场景中的<strong>落地机会与商业潜力</strong>。</p>
+            <div>
+              <h3>Architecture Design</h3>
+              <p>从空间概念、功能组织到视觉表达，建立能服务沟通与落地的建筑方案。</p>
+            </div>
           </article>
-          <article>
+          <article class="service-item reveal" data-reveal>
             <span>02</span>
-            <h3>综合能动性</h3>
-            <p>覆盖前期沟通、<strong>需求对接</strong>、<strong>方案策划</strong>、<strong>团队统筹</strong>、施工过程管控到<strong>项目交付</strong>。</p>
+            <div>
+              <h3>Interior Design</h3>
+              <p>覆盖住宅、办公、餐饮、医疗与运动空间，把审美、动线、材料和体验整合为完整方案。</p>
+            </div>
           </article>
-          <article>
+          <article class="service-item reveal" data-reveal>
             <span>03</span>
-            <h3>AIGC 全栈实践</h3>
-            <p>熟悉 <strong>ComfyUI、Banana、GPT、Seedance</strong> 等工具，具备<strong>从 0 到 1</strong> 搭建工作流和产品的经验。</p>
+            <div>
+              <h3>AI Workflow</h3>
+              <p>用 ComfyUI、GPT、AIGC与AGENT，把重复设计动作沉淀为可复用生产流程。</p>
+            </div>
           </article>
-          <article>
+          <article class="service-item reveal" data-reveal>
             <span>04</span>
-            <h3>AI 工具辅助编程</h3>
-            <p>用 AI <strong>压缩重复事务耗时</strong>，搭建<strong>自动化流程</strong>，提升团队整体<strong>效率与交付质量</strong>。</p>
+            <div>
+              <h3>Visual Rendering</h3>
+              <p>以写实图像、材质氛围、镜头语言和前后对比，提升方案表达效率和判断质量。</p>
+            </div>
+          </article>
+          <article class="service-item reveal" data-reveal>
+            <span>05</span>
+            <div>
+              <h3>AI App Prototyping</h3>
+              <p>围绕提示词生成、平面图协作、图片对比和拆分工具，快速构建设计团队内部工具。</p>
+            </div>
           </article>
         </div>
       </section>
 
-      <section id="work" class="section work-section">
-        <div class="section-heading wide">
-          <div>
-            <p class="eyebrow">Selected Work</p>
-            <h2>25年作品集</h2>
-          </div>
-        </div>
-        <div class="filter-bar" role="list" aria-label="作品筛选"></div>
-        <div class="work-grid" id="workGrid" aria-live="polite"></div>
-      </section>
+      <section id="projects" class="projects-section">
+        <h2 class="hero-heading section-heading reveal" data-reveal>Project</h2>
+        <div class="project-stack" id="projectStack"></div>
 
-      <section id="ai-apps" class="section ai-apps-section">
-        <div class="section-heading wide">
-          <div>
-            <p class="eyebrow">AI App Portfolio</p>
-            <h2>AI 应用作品</h2>
+        <div class="work-library" aria-label="完整作品集">
+          <div class="library-heading">
+            <div>
+              <p class="eyebrow">Selected Work</p>
+              <h2>Selected Work</h2>
+            </div>
+            <div class="filter-bar" role="list" aria-label="作品筛选"></div>
           </div>
+          <div class="work-grid" id="workGrid" aria-live="polite"></div>
         </div>
-        <div class="app-grid">
-          <a class="app-card" href="./public/apps/interior-prompt.html" target="_blank" rel="noopener">
-            <span>Prompt</span>
-            <h3>室内效果图提示词生成器</h3>
-            <p>面向室内写实摄影表达，快速组织风格、材质、空间和镜头语言。</p>
-          </a>
-          <a class="app-card" href="./public/apps/architecture-prompt.html" target="_blank" rel="noopener">
-            <span>Prompt</span>
-            <h3>建筑效果图提示词生成器</h3>
-            <p>面向建筑写实表现，生成更稳定的外立面、场景氛围和摄影描述。</p>
-          </a>
-          <a class="app-card" href="./public/apps/plan-render.html" target="_blank" rel="noopener">
-            <span>Plan AI</span>
-            <h3>平面图 AI 渲染生成器</h3>
-            <p>把 CAD 平面图转化为可用于 AI 渲染的结构化描述和生成参数。</p>
-          </a>
-          <a class="app-card" href="./public/apps/plan-collaboration.html" target="_blank" rel="noopener">
-            <span>Collab</span>
-            <h3>平面图协作工具</h3>
-            <p>围绕平面图、风格参考和沟通反馈，辅助团队协作与方案推进。</p>
-          </a>
-          <a class="app-card" href="./public/apps/image-compare.html" target="_blank" rel="noopener">
-            <span>Review</span>
-            <h3>图片滑动对比工具</h3>
-            <p>用于方案前后、原图与生成图之间的细节校对和视觉对比。</p>
-          </a>
-          <a class="app-card" href="./public/apps/image-split-3x4.html" target="_blank" rel="noopener">
-            <span>Utility</span>
-            <h3>3:4 一键拆分工具</h3>
-            <p>把图片快速拆分成网格素材，适合批量处理与二次生成工作流。</p>
-          </a>
-        </div>
-      </section>
 
-      <section id="ai" class="section split-section">
-        <div>
-          <p class="eyebrow">AI Design Applications</p>
-          <h2 class="ai-title">
-            <span>把AI从“出图工具”</span>
-            <span>推进到“生产系统”</span>
-          </h2>
-          <div class="ai-diagram" aria-label="AI 设计生产系统图例">
-            <div class="diagram-node">
-              <span>Input</span>
-              <strong>空间需求</strong>
-              <p>Brief / 图像 / 尺寸</p>
-            </div>
-            <div class="diagram-node">
-              <span>Workflow</span>
-              <strong>AI 工作流</strong>
-              <p>生成 / 筛选 / 复用</p>
-            </div>
-            <div class="diagram-node">
-              <span>Output</span>
-              <strong>方案资产</strong>
-              <p>表达 / 管理 / 交付</p>
+        <div class="ai-apps" aria-label="AI 应用作品">
+          <div class="library-heading">
+            <div>
+              <p class="eyebrow">AI App Portfolio</p>
+              <h2>AI Apps</h2>
+              <p class="heading-note">AI 应用作品</p>
             </div>
           </div>
-        </div>
-        <div class="ai-list">
-          <article>
-            <h3>生成式方案表达</h3>
-            <p>围绕概念图、氛围图、材料表达和空间叙事建立可复用工作流。</p>
-          </article>
-          <article>
-            <h3>项目管理自动化</h3>
-            <p>把需求整理、清单生成、日报周报、交付检查等重复动作产品化。</p>
-          </article>
-          <article>
-            <h3>垂直产品原型</h3>
-            <p>探索面向设计团队和业主沟通场景的 AI 工具，从内部效率走向商业化。</p>
-          </article>
+          <div class="app-grid">
+            <a class="app-card" href="./public/apps/interior-prompt.html" target="_blank" rel="noopener">
+              <figure><img src="./public/assets/apps/interior-prompt.webp" alt="" loading="lazy" /></figure>
+              <span>Prompt</span>
+              <h3>Interior Prompt Generator</h3>
+              <p>快速组织风格、材质、空间和镜头语言。</p>
+            </a>
+            <a class="app-card" href="./public/apps/architecture-prompt.html" target="_blank" rel="noopener">
+              <figure><img src="./public/assets/apps/architecture-prompt.webp" alt="" loading="lazy" /></figure>
+              <span>Prompt</span>
+              <h3>Architecture Prompt Generator</h3>
+              <p>生成更稳定的外立面、场景氛围和摄影描述。</p>
+            </a>
+            <a class="app-card" href="./public/apps/plan-render.html" target="_blank" rel="noopener">
+              <figure><img src="./public/assets/apps/plan-render.webp" alt="" loading="lazy" /></figure>
+              <span>Plan AI</span>
+              <h3>Plan Rendering Assistant</h3>
+              <p>把 CAD 平面图转化为结构化描述和生成参数。</p>
+            </a>
+            <a class="app-card" href="./public/apps/plan-collaboration.html" target="_blank" rel="noopener">
+              <figure><img src="./public/assets/apps/plan-collaboration.webp" alt="" loading="lazy" /></figure>
+              <span>Collab</span>
+              <h3>Plan Collaboration Tool</h3>
+              <p>围绕平面图、风格参考和沟通反馈推进方案。</p>
+            </a>
+            <a class="app-card" href="./public/apps/image-compare.html" target="_blank" rel="noopener">
+              <figure><img src="./public/assets/apps/image-compare.webp" alt="" loading="lazy" /></figure>
+              <span>Review</span>
+              <h3>Image Compare Slider</h3>
+              <p>用于方案前后、原图与生成图之间的细节校对。</p>
+            </a>
+            <a class="app-card" href="./public/apps/image-split-3x4.html" target="_blank" rel="noopener">
+              <figure><img src="./public/assets/apps/image-split-3x4.webp" alt="" loading="lazy" /></figure>
+              <span>Utility</span>
+              <h3>3:4 Image Splitter</h3>
+              <p>把图片快速拆分成网格素材，适合批量处理。</p>
+            </a>
+          </div>
         </div>
       </section>
 
-      <section id="experience" class="section">
-        <div class="section-heading">
-          <p class="eyebrow">Work Experience</p>
-          <h2>从业经历</h2>
+      <section id="contact" class="contact-section">
+        <p class="eyebrow">Contact</p>
+        <h2 class="hero-heading">Let's build a better design workflow.</h2>
+        <div class="contact-panel">
+          <div class="contact-profile">
+            <img src="./public/assets/resume/profile-avatar.png?v=20260623-clear" alt="庄志城个人照片" />
+            <div>
+              <h3>Zhuang Zhicheng</h3>
+              <p>华南理工大学建筑学本科</p>
+              <p>现居深圳 / 建筑 & 室内 & AI</p>
+              <p>WeChat：ap855842</p>
+            </div>
+          </div>
+          <div class="timeline" id="timeline"></div>
         </div>
-        <div class="timeline" id="timeline"></div>
       </section>
-
     </main>
 
     <div class="lightbox" id="lightbox" hidden>
@@ -211,6 +186,6 @@
       <span aria-hidden="true">↑</span>
     </a>
 
-    <script src="./script.js?v=20260623-workcards"></script>
+    <script src="./script.js?v=20260701-publish"></script>
   </body>
 </html>
